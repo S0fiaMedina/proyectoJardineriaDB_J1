@@ -11,7 +11,7 @@ CREATE TABLE  person(
     first_surname VARCHAR(50),
     last_name VARCHAR(50) NOT NULL,
     last_surname VARCHAR(50),
-    user_type ENUM('cliente', 'empleado' ),
+    user_type ENUM('cliente', 'empleado', 'Proovedor' ),
     email VARCHAR(100) NOT NULL UNIQUE,
     CONSTRAINT pk_person PRIMARY KEY(id)
 )ENGINE = INNODB;
@@ -90,7 +90,7 @@ CREATE TABLE address(
 )ENGINE = INNODB;
 
 -- DIRECCION COMPLEMENTO
-/* Tabla intermedia que sirve para mantener la integridad relacional entre la dirección y sus complementos, mientras mantiene la atomicidad y la dependencia de los datos unicamente en su llave primaria
+/* Tabla intermedia que sirve para mantener la integridad relacional entre la dirección y sus complementos, 	a
 */
 CREATE TABLE address_complement(
     complement_id INT NOT NULL,
@@ -137,7 +137,7 @@ CREATE TABLE telephone(
 Esta tabla normaliza pero a la vez mantiene la logica de negocio original al separar la gama o la categoria a la cual pertenece el producto
 */
 CREATE TABLE family(
-	id INT NOT NULL AUTO_INCREMENT,
+    id INT NOT NULL AUTO_INCREMENT,
     family_name VARCHAR(25) NOT NULL,
     desc_text TEXT,
     desc_html TEXT,
@@ -148,7 +148,7 @@ CREATE TABLE family(
 -- PROOVEDOR 
 /* Tabla para normalizar a producto, contiene la empresa que provee los productos, la cual esta representada por un usuario el cual contiene otros detalles como su direccion, telefono y email*/
 CREATE TABLE supplier(
-	id INT NOT NULL AUTO_INCREMENT,
+    id INT NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
     supplier_name VARCHAR(50),
     CONSTRAINT pk_supplier PRIMARY KEY(id),
@@ -160,7 +160,7 @@ CREATE TABLE supplier(
 Se trata de una tabla normalizada la cual divide los campos de dimensiones, con el fin de conseguir valores mas atomicos, al igual que aparta gama y el proovedor en otra tablas con la finalidad de garantizar la integridad referencil y de datos
 */
 CREATE TABLE product(
-	code INT NOT NULL AUTO_INCREMENT,
+    code INT NOT NULL AUTO_INCREMENT,
     product_name VARCHAR(70) NOT NULL,
     stock SMALLINT(6) NOT NULL,
     selling_price_dolars DECIMAL(15,2),
@@ -173,6 +173,125 @@ CREATE TABLE product(
     CONSTRAINT pk_product PRIMARY KEY(code),
     CONSTRAINT fk_product_family FOREIGN KEY(family_id) REFERENCES family(id),
     CONSTRAINT fk_product_supplier FOREIGN KEY(supplier_id) REFERENCES supplier(id)
+)ENGINE = INNODB;
+
+/*
+**************** TABLAS DERIVADAS DE EMPLEADO ****************
+*/
+
+-- OFICINA
+/* Una tabla la cual posee sus campos atomicos y la cual puede contener muchos empleados
+*/
+CREATE TABLE office(
+	code VARCHAR(10) NOT NULL AUTO_INCREMENT,
+	entity_id INT NOT NULL AUTO_INCREMENT,
+    CONSTRAINT pk_office PRIMARY KEY(code),
+    CONSTRAINT pk_office_entity FOREIGN KEY(entity_id) REFERENCES entity(id)
+)ENGINE = INNODB;
+
+-- CARGO
+/*Esta tabla catalogo sirve para mantener la coherencia e integridad de datos, ya que muchos empleados pueden tener un mismo cargo*/
+CREATE TABLE charge(
+	id INT PRIMARY KEY AUTO_INCREMENT,
+	charge_name VARCHAR(50) NOT NULL,
+	CONSTRAINT pk_charge PRIMARY KEY(id),
+)ENGINE = INNODB;
+
+-- EMPLEADO 
+/*Una version normalizada de la tabla de empleado donde se separan tablas como cargo, además que es representado por un usuario que contiene los datos personales del empleado*/
+CREATE TABLE employee(
+    person_id INT NOT NULL,
+    charge_id INT NOT NULL,
+    office_code VARCHAR(10) NOT NULL,
+    extension VARCHAR(5),
+    CONSTRAINT pk_employee PRIMARY KEY(person_id),
+    CONSTRAINT fk_employee_person FOREIGN KEY(person_id) REFERENCES person(id),
+    CONSTRAINT fk_employee_charge FOREIGN KEY(charge_id) REFERENCES charge(id),
+    CONSTRAINT fk_employee_office FOREIGN KEY(office_id) REFERENCES office(id)
+)ENGINE = INNODB;
+
+/*
+**************** TABLAS DERIVADAS DE CLIENTE ****************
+*/
+
+-- CLIENTE
+/* Tabla para normalizar a cliente, contiene la empresa que realiza pedidos a  los productos, la cual esta representada por un usuario el cual contiene otros detalles como su direccion, telefono y email*/
+CREATE TABLE customer(
+	id INT not null AUTO_INCREMENT,
+	user_id INT NOT NULL,
+	employee_rep INT,
+	customer_name VARCHAR(50) NOT NULL,
+	credit_limit DECIMAL(15,2),
+	CONSTRAINT pk_customer PRIMARY KEY(id),
+	FOREIGN KEY(user_id)  REFERENCES users(id),
+	FOREIGN KEY(employee_rep) REFERENCES employee(id)
+)ENGINE = INNODB;
+
+
+/*
+**************** TABLAS DERIVADAS DE PEDIDO ****************
+*/
+
+-- ESTADO DE UN PEDIDO
+/* tabla hecha para normalizar los estados de un pedido, todos sus atibutos son depenedientes a la llave primaria y son atomicos*/
+CREATE TABLE order_state(
+	id INT NOT NULL AUTO_INCREMENT,
+	state_name VARCHAR(15) NOT NULL,
+	CONSTRAINT pk_order_state PRIMARY KEY(id)
+)ENGINE = INNODB;
+
+-- PEDIDO
+/* tabla hecha para normalizar los  pedidos, todos sus atibutos son depenedientes a la llave primaria y son atomicos*/
+CREATE TABLE orders(
+	id INT NOT NULL AUTO_INCREMENT,
+	customer_id INT NOT NULL,
+	state_id INT NOT NULL,
+	order_date DATE NOT NULL,
+	expected_date DATE NOT NULL,
+	deliver_date DATE,
+	commentary TEXT,
+	CONSTRAINT pk_orders PRIMARY KEY(id),
+	CONSTRAINT fk_orders_customer FOREIGN KEY(customer_id) REFERENCES customer(id),
+	CONSTRAINT fk_orders_order_state FOREIGN KEY(state_id) REFERENCES order_state(id)
+)ENGINE = INNODB;
+
+-- DETALLE DE PEDIDO
+/*
+Es una tabla intermedia que garantiza la integridad referencial de muchos a muchos que se sostiene mediante las entidades de producto y ordenes, conteniendo atributos atomicos y dependientes  de la llave primaria
+*/
+CREATE TABLE detail_order(
+	product_id INT NOT NULL,
+	order_id INT NOT NULL,
+	quantity INT NOT NULL,
+	unity_price DECIMAL(15,2),
+	line_number SMALLINT NOT NULL,
+	CONSTRAINT pk_detail_order PRIMARY KEY (product_id, order_id),
+	CONSTRAINT fk_detail_order_product FOREIGN KEY(product_id) REFERENCES product(id),
+	CONSTRAINT fk_detail_order_order FOREIGN KEY(order_id) REFERENCES orders(id)
+)ENGINE = INNODB;
+
+/*
+******************** TABLAS DERIVADAS DE PAGO ********************
+*/
+CREATE TABLE form_of_payment(
+	id INT NOT NULL AUTO_INCREMENT,
+	detail VARCHAR(20) NOT NULL,
+	CONSTRAINT pk_form_of_payment PRIMARY KEY(id) 
+)ENGINE = INNODB;
+
+
+-- PAGO
+CREATE TABLE payment(
+	id INT NOT NULL AUTO_INCREMENT,
+	customer_id INT NOT NULL,
+	payment_form INT NOT NULL,
+	order_to_pay INT NOT NULL,
+	payment_date DATE NOT NULL,
+	total DECIMAL(15,2),
+	CONSTRAINT pk_payment PRIMARY KEY(id),
+	CONSTRAINT fk_customer_payment FOREIGN KEY (customer_id) REFERENCES customer(id),
+	CONSTRAINT fk_payment_form FOREIGN KEY (payment_form) REFERENCES form_of_payment(id),
+	CONSTRAINT fk_payment_order FOREIGN KEY (order_to_pay) REFERENCES orders(id)
 )ENGINE = INNODB;
 
 
