@@ -1,17 +1,21 @@
 -- ------------------
 -- Script de la creacion de tablas para la base de datos de jardineria
 -- ------------------
+DROP DATABASE IF EXISTS the_garden;
+CREATE DATABASE the_garden;
+USE the_garden;
 /*
 ******** TABLA DE USUARIOS ******** 
 Esta tabla reune los datos de cualquier persona ( cliente, empleado), con el fin de evitar la repetición de los datos,además de mantener una mayor coherencia entre estos
 */
+DROP TABLE IF EXISTS person;
 CREATE TABLE  person(
 	id INT NOT NULL AUTO_INCREMENT,
     first_name VARCHAR(50) NOT NULL,
     first_surname VARCHAR(50),
     last_name VARCHAR(50) NOT NULL,
     last_surname VARCHAR(50),
-    user_type ENUM('cliente', 'empleado', 'Proovedor' ),
+    user_type ENUM('rep_cliente', 'empleado' ),
     email VARCHAR(100) NOT NULL UNIQUE,
     CONSTRAINT pk_person PRIMARY KEY(id)
 )ENGINE = INNODB;
@@ -32,9 +36,8 @@ CREATE TABLE entity(
 CREATE TABLE country(
 	id INT NOT NULL AUTO_INCREMENT,
     country_name VARCHAR(50) NOT NULL UNIQUE,
-    prefix VARCHAR(4) NOT NULL UNIQUE,
     CONSTRAINT pk_country PRIMARY KEY(id)
-)ENGINE = INNODB;;
+)ENGINE = INNODB;
 
 -- REGIONES
 CREATE TABLE region(
@@ -43,7 +46,7 @@ CREATE TABLE region(
     country_id INT NOT NULL,
     CONSTRAINT pk_region PRIMARY KEY(id),
     CONSTRAINT fk_region_country FOREIGN KEY(country_id) REFERENCES country(id)
-)ENGINE = INNODB;;
+)ENGINE = INNODB;
 -- CIUDAD
 /*tabla de ciudades / distritos / municipios para normlizar direcciones manejarlas a un nivel mas especifico
 Todos sus atributos son atomicos y dependientes de la llave primaria*/
@@ -121,11 +124,9 @@ La tabla telephone está normalizada porque separa la información de los númer
 CREATE TABLE telephone(
 	id INT NOT NULL AUTO_INCREMENT,
     entity_id INT NOT NULL,
-    phone_number VARCHAR(10)  NOT NULL,
-    country_id INT NOT NULL,
+    telephone_number VARCHAR(15)  NOT NULL,
     type_id INT NOT NULL,
     CONSTRAINT pk_telephone PRIMARY KEY(id),
-    CONSTRAINT fk_telephone_country FOREIGN KEY(country_id) REFERENCES country(id),
     CONSTRAINT fk_telephone_entity FOREIGN KEY(entity_id) REFERENCES entity(id),
     CONSTRAINT fk_telephone_type FOREIGN KEY(type_id) REFERENCES telephone_type(id)
 )ENGINE = INNODB;
@@ -133,9 +134,7 @@ CREATE TABLE telephone(
 /* ******************* TABLAS DERIVADAS DE PRODUCTO ******************* */
 
 -- GAMA DEL PRODUCTO
-/*
-Esta tabla normaliza pero a la vez mantiene la logica de negocio original al separar la gama o la categoria a la cual pertenece el producto
-*/
+
 CREATE TABLE family(
     id INT NOT NULL AUTO_INCREMENT,
     family_name VARCHAR(25) NOT NULL,
@@ -146,19 +145,16 @@ CREATE TABLE family(
 )ENGINE = INNODB;
 
 -- PROOVEDOR 
-/* Tabla para normalizar a producto, contiene la empresa que provee los productos, la cual esta representada por un usuario el cual contiene otros detalles como su direccion, telefono y email*/
+
 CREATE TABLE supplier(
     id INT NOT NULL AUTO_INCREMENT,
     user_id INT NOT NULL,
     supplier_name VARCHAR(50),
     CONSTRAINT pk_supplier PRIMARY KEY(id),
-    CONSTRAINT fk_supplier_person FOREIGN KEY(id) REFERENCES person(id) -- el representante del proovedor 
 )ENGINE = INNODB;
 
 -- PRODUCTO
-/*
-Se trata de una tabla normalizada la cual divide los campos de dimensiones, con el fin de conseguir valores mas atomicos, al igual que aparta gama y el proovedor en otra tablas con la finalidad de garantizar la integridad referencil y de datos
-*/
+
 CREATE TABLE product(
     code INT NOT NULL AUTO_INCREMENT,
     product_name VARCHAR(70) NOT NULL,
@@ -194,7 +190,7 @@ CREATE TABLE office(
 CREATE TABLE charge(
 	id INT PRIMARY KEY AUTO_INCREMENT,
 	charge_name VARCHAR(50) NOT NULL,
-	CONSTRAINT pk_charge PRIMARY KEY(id),
+	CONSTRAINT pk_charge PRIMARY KEY(id)
 )ENGINE = INNODB;
 
 -- EMPLEADO 
@@ -203,8 +199,10 @@ CREATE TABLE employee(
     person_id INT NOT NULL,
     charge_id INT NOT NULL,
     office_code VARCHAR(10) NOT NULL,
+    boss_id INT,
     extension VARCHAR(5),
     CONSTRAINT pk_employee PRIMARY KEY(person_id),
+    CONSTRAINT fk_employee_boss FOREIGN KEY(person_id),
     CONSTRAINT fk_employee_person FOREIGN KEY(person_id) REFERENCES person(id),
     CONSTRAINT fk_employee_charge FOREIGN KEY(charge_id) REFERENCES charge(id),
     CONSTRAINT fk_employee_office FOREIGN KEY(office_id) REFERENCES office(id)
