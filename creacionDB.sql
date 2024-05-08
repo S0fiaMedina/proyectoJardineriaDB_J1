@@ -65,7 +65,7 @@ CREATE TABLE complement(
 CREATE TABLE address( 
 	id INT NOT NULL AUTO_INCREMENT,
     entity_id INT NOT NULL,
-    zip VARCHAR(15) NOT NULL,
+    zip VARCHAR(15),
     city_id INT NOT NULL,
     CONSTRAINT pk_address PRIMARY KEY(id),
     CONSTRAINT fk_address_city FOREIGN KEY(city_id) REFERENCES city(id),
@@ -154,7 +154,9 @@ CREATE TABLE product(
 
 CREATE TABLE office(
 	code VARCHAR(10) NOT NULL,
-    CONSTRAINT pk_office PRIMARY KEY(code)
+    entity_id INT NOT NULL,
+    CONSTRAINT pk_office PRIMARY KEY(code),
+    CONSTRAINT fk_office_entity FOREIGN KEY(entity_id) REFERENCES entity(id)
 )ENGINE = INNODB;
 
 
@@ -189,11 +191,14 @@ CREATE TABLE employee(
     name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     last_surname VARCHAR(50) DEFAULT NULL,
+    email VARCHAR(100) NOT NULL,
     charge_id INT NOT NULL,
     office_code VARCHAR(10) NOT NULL,
     boss_id INT,
     extension_id INT,
+    entity_id INT NOT NULL,
     CONSTRAINT pk_employee PRIMARY KEY(employee_id),
+    CONSTRAINT fk_employee_entity FOREIGN KEY(entity_id) REFERENCES entity(id),
     CONSTRAINT fk_employee_boss FOREIGN KEY(boss_id) REFERENCES employee(employee_id),
     CONSTRAINT fk_employee_charge FOREIGN KEY(charge_id) REFERENCES charge(id),
     CONSTRAINT fk_employee_office FOREIGN KEY(office_code) REFERENCES office(code),
@@ -210,7 +215,9 @@ CREATE TABLE customer(
 	employee_rep INT,
 	customer_name VARCHAR(50) NOT NULL,
 	credit_limit DECIMAL(15,2),
+    entity_id INT NOT NULL,
 	CONSTRAINT pk_customer PRIMARY KEY(id),
+    CONSTRAINT fk_customer_entity FOREIGN KEY(entity_id) REFERENCES entity(id),
 	CONSTRAINT  fk_customer_employee  FOREIGN KEY(employee_rep) REFERENCES employee(employee_id)
 )ENGINE = INNODB;
 
@@ -222,6 +229,8 @@ CREATE TABLE customer_contact(
 	customer_id INT NOT NULL,
 	nombre_contacto VARCHAR(30) DEFAULT NULL,
 	apellido_contacto VARCHAR(30) DEFAULT NULL,
+    entity_id INT NOT NULL,
+    CONSTRAINT fk_contact_entity FOREIGN KEY(entity_id) REFERENCES entity(id),
 	CONSTRAINT pk_customer_contact PRIMARY KEY(id),
 	CONSTRAINT fk_contact_customer FOREIGN KEY(customer_id) REFERENCES customer(id)
 )ENGINE = INNODB;
