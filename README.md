@@ -6,6 +6,10 @@
 
 ## :white_flower: Base de datos de jardineria :white_flower:
 
+### 
+
+[TOC]
+
 
 
 ### 👤Autoría
@@ -15,24 +19,42 @@
 
 
 
+****
+
+
+
 ### 🗃️ Diagrama entidad - relación
 
 ![Imagen del diagrama](the_garden_diagram.png)
 
 
 
+****
 
-### 🔧 Inserción de datos
 
-- Para la insercion de los datos se utilizaron [procedimientos almacenados](procedimientos_de_insercion.sql) apoyados por [funciones](utileria:D/functions.sql).
+
+###  :heavy_plus_sign: Inserción de datos + implementacion
+
+- Para la insercion de los datos se utilizaron [procedimientos almacenados](procedimientos_de_insercion.sql) apoyados por [funciones](utileria:D/functions.sql)
+  - Primero se deben crear las funciones, despues los procedimientos y las llamadas de oficina, empleado, cliente, producto, pedido, detalle de pedido y pago
 
 - La llamada a los  respectivos procedimientos se encuentra en la carpeta de `insertions`
+
+
+
+***
 
 
 
 ### 🔨 Creación de tablas
 
 - El script de la creacion de la bases de datos se encuentra en [en un archivo por separado](creacionDB.sql).
+
+
+
+***
+
+
 
 ### :eyes: Vistas
 
@@ -151,6 +173,10 @@
     ```
 
     
+
+***
+
+
 
 ### :wrench: Procedimientos almacenados
 
@@ -333,7 +359,77 @@
    CALL search_rep(8);
    ```
 
+
+
+
+8. Procedimiento para obtener el numero de clientes que atiende un empleado a partir de su id
+
+   ```sql
+   DELIMITER //
+   DROP PROCEDURE IF EXISTS number_of_clients//
+   CREATE PROCEDURE number_of_clients(IN id INT)
+   BEGIN
+       SELECT COUNT(cu.id) AS numero_clientes,
+       CONCAT_WS(' ', em.name, em.last_name)  AS nombre_representante
+       FROM employee AS em
+       INNER JOIN customer AS cu ON em.employee_id = cu.employee_rep
+       GROUP BY nombre_representante,em.employee_id 
+       HAVING em.employee_id = id;
+   END //
+   DELIMITER ;
    
+   CALL number_of_clients(5);
+   
+   ```
+
+
+
+9. procedimiento para obtener los clientes  y el id de su representante que pertenece a una determinada ciudad, a partir de su nombre.
+
+   ```sql
+   DELIMITER //
+   DROP PROCEDURE IF EXISTS clients_of_city//
+   CREATE PROCEDURE clients_of_city(IN name VARCHAR(50))
+   BEGIN
+        SELECT cu.customer_name, cu.employee_rep  FROM customer AS cu
+       INNER JOIN entity AS e ON e.id = cu.entity_id
+       INNER JOIN address AS a ON a.entity_id = cu.entity_id
+       INNER JOIN city AS ci ON ci.id = a.city_id
+       WHERE ci.city_name = name;
+   END //
+   DELIMITER ;
+   
+   CALL clients_of_city('Miami');
+   ```
+
+   
+
+10. Devolver el numero de pedidos que ha hecho un cliente a partir de su id
+
+    ```sql
+    DELIMITER //
+    DROP PROCEDURE IF EXISTS number_of_orders//
+    CREATE PROCEDURE number_of_orders(IN id INT)
+    BEGIN
+        SELECT cu.customer_name AS nombre_cliente, 
+        COUNT(ord.id) AS numero_pedidos
+        FROM customer AS cu
+        INNER JOIN orders AS ord ON ord.customer_id = cu.id
+        WHERE cu.id = id
+        GROUP BY nombre_cliente;
+    END //
+    DELIMITER ;
+    
+    CALL number_of_orders(7);
+    ```
+
+    
+
+
+
+***
+
+
 
 ### 🔍 Consultas
 
