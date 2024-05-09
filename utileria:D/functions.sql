@@ -37,7 +37,7 @@ BEGIN
     ELSE 
         RETURN id_of_thing;
     END IF;
-END$$
+END $$
 DELIMITER ;
 
 

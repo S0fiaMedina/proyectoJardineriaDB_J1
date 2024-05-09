@@ -36,9 +36,304 @@
 
 ### :eyes: Vistas
 
-:eyes: Procedimientos almacenados
+1. listado indicando todas las ciudades donde hay oficinas y el número de empleados que tiene.
+
+   ```sql
+   CREATE VIEW ciudades_empleado AS 
+   SELECT ci.city_name AS nombre_ciudad, 
+   COUNT(em.employee_id) AS n_empleados FROM office AS o
+   INNER JOIN employee AS em ON em.office_code = o.code
+   INNER JOIN entity AS e ON o.entity_id = e.id
+   INNER JOIN address AS ad ON ad.entity_id = e.id
+   INNER JOIN city AS ci ON ci.id = ad.city_id
+   GROUP BY nombre_ciudad;
+   
+   SELECT nombre_ciudad,n_empleados FROM  ciudades_empleado;
+   ```
+
+   
+
+2. la suma total de todos los pagos que se realizaron para cada uno de los años que aparecen en la tabla pagos.
+
+   ```SQL
+   CREATE OR REPLACE VIEW pagos_año AS 
+   SELECT YEAR(payment_date) AS anio_pago, 
+   SUM(pa.total) AS suma_pago FROM payment AS pa
+   GROUP BY anio_pago;
+   ```
 
 
+
+3. Devuelve el nombre de los representantes de ventas y el número de clientes al que atiende cada uno.
+
+   ```sql
+   CREATE OR REPLACE VIEW empleado_clientes AS 
+   SELECT COUNT(cu.id) AS numero_clientes,
+   CONCAT_WS(' ', em.name, em.last_name)  AS nombre_representante
+   FROM employee AS em
+   INNER JOIN customer AS cu ON em.employee_id = cu.employee_rep
+   GROUP BY nombre_representante;
+   ```
+
+
+
+4. número de clientes que tiene la empresa.
+
+   ```sql
+   CREATE OR REPLACE VIEW numero_clientes AS 
+   SELECT COUNT(id) FROM customer;
+   ```
+
+
+
+5. Numero de pedidos que  hay en cada estado
+
+   ```sql
+   CREATE OR REPLACE VIEW pedidos_estado AS 
+   SELECT COUNT(ord.id), os.state_name FROM orders AS ord
+   INNER JOIN order_state AS os ON os.id = ord.state_id
+   GROUP BY os.state_name;
+   ```
+
+
+
+6. istado de los productos que nunca han aparecido en un pedido.
+
+   ```sql
+   CREATE OR REPLACE VIEW productos_sin_pedidos AS 
+   SELECT DISTINCT  p.product_name FROM product AS p
+   LEFT JOIN detail_order AS od ON od.product_code = p.code
+   WHERE od.product_code IS NULL;
+   ```
+
+
+
+7. listado que muestre solamente los empleados que no tienen un cliente asociado.
+
+   ```sql
+   CREATE OR REPLACE VIEW empleados_sin_cliente AS 
+   SELECT  em.name, em.last_name  FROM employee AS em
+   LEFT JOIN customer AS cu ON em.employee_id = cu.employee_rep
+   WHERE cu.employee_rep IS NULL;
+   ```
+
+
+
+8.  listado que muestre solamente los clientes que no han realizado ningún pedido.
+
+   ```sql
+   CREATE OR REPLACE VIEW clientes_sin_pedido AS 
+   SELECT cu.customer_name FROM customer AS cu
+   LEFT JOIN orders AS o ON o.customer_id = cu.id
+   WHERE o.customer_id IS NULL;
+   ```
+
+
+
+9. listado que muestre solamente los clientes que no han realizado ningún pago.
+
+   ```sql
+   CREATE OR REPLACE VIEW clientes_sin_pago AS 
+   SELECT cu.customer_name FROM customer AS cu
+   LEFT JOIN payment AS pa ON pa.customer_id = cu.id
+   WHERE pa.customer_id IS NULL;
+   ```
+
+
+
+10. listado con el nombre de los empleados junto con el nombre de sus jefes.
+
+    ```sql
+    CREATE OR REPLACE VIEW empleados_jefes AS 
+    SELECT CONCAT_WS(' ', e.name, e.last_name, e.last_surname) AS nombre_empleado,
+    CONCAT_WS(' ', b.name, b.last_name, b.last_surname) AS nombre_jefe FROM employee AS e
+    LEFT JOIN employee AS b ON e.boss_id = b.employee_id;
+    ```
+
+    
+
+### :wrench: Procedimientos almacenados
+
+1. crear una nueva gama de productos
+
+   ```sql
+   DELIMITER &&
+   DROP PROCEDURE IF EXISTS create_family&&
+   CREATE PROCEDURE  create_family(
+       IN gama VARCHAR(25),
+       IN descripcion TEXT,
+       IN html TEXT,
+       IN imagen VARCHAR(256)
+   )
+   BEGIN 
+   	DECLARE family_search INT;
+   	-- numero de nombres de familias coincidientes
+   	SELECT COUNT(id) INTO family_search FROM family 
+   	WHERE family_name LIKE gama;
+   	
+   	IF  family_search = 0 THEN
+   		INSERT INTO family(family_name, desc_text, desc_html, image)
+   		VALUES(gama, descripcion, html, imagen);
+   	ELSE
+   		SELECT 'Ya existe una familia con ese nombre' AS message;
+   	END IF;
+   END &&
+   DELIMITER ;
+   
+   CALL create_family('Flores', 'Familia de plantas que producen flores vistosas y coloridas.', '<p>Las flores son la parte más llamativa de muchas plantas y juegan un papel crucial en la polinización.</p>', 'imagen_flores.jpg');
+   
+   ```
+
+
+
+2. crear nuevo cargo para los empleados
+
+   ```sql
+   DELIMITER &&
+   DROP PROCEDURE IF EXISTS create_charge&&
+   CREATE PROCEDURE  create_charge(
+       IN nombre VARCHAR(70)
+   )
+   BEGIN 
+   	DECLARE charge_search INT;
+   	
+   	-- numero de nombres de cargos coincidientes
+   	SELECT COUNT(id) INTO charge_search FROM charge 
+   	WHERE charge_name LIKE nombre;
+   	
+   	IF  charge_search = 0 THEN
+   		INSERT INTO charge(charge_name)
+   		VALUES(nombre);
+   	ELSE
+   		SELECT 'Ya existe un cargo con ese nombre' AS message;
+   	END IF;
+   END &&
+   DELIMITER ;
+   
+   CALL create_charge('Asesor comercial');
+   ```
+
+
+
+3. Eliminar un producto y sus rastros en las compras
+
+   ```SQL
+   DELIMITER %%
+   DROP PROCEDURE IF EXISTS delete_product%%
+   CREATE PROCEDURE delete_product(
+   	IN codigo VARCHAR(15)
+   )
+   BEGIN
+   	/* Eliminar de detalle de orden */
+   	DELETE FROM detail_order WHERE product_code = codigo;
+   	DELETE FROM product WHERE code = codigo;
+   END %%
+   DELIMITER ;
+   
+   CALL delete_product('11679');
+   ```
+
+
+
+4. Cambiar el nombre de un producto 
+
+   ```SQL
+   DELIMITER //
+   DROP PROCEDURE IF EXISTS change_name_product //
+   CREATE PROCEDURE change_name_product(
+       IN product_code VARCHAR(15),
+   	IN new_name VARCHAR(70)
+   )
+   BEGIN
+   	DECLARE name_search INT;
+   	
+   	-- numero de nombres de productos coincidientes
+   	SELECT COUNT(product_name) INTO name_search FROM product 
+   	WHERE product_name LIKE new_name;
+   	
+   	IF  name_search = 0 THEN
+   		UPDATE product SET product_name = new_name
+   		WHERE code = product_code;
+   	ELSE
+   		SELECT 'Ya existe un producto con ese nombre' AS message;
+   	END IF;
+   END //
+   DELIMITER ;
+   
+   CALL change_name_product('FR-2', 'semilla de aguacate');
+   ```
+
+
+
+5. Agregar nueva forma de pago
+
+   ```sql
+   DELIMITER &&
+   DROP PROCEDURE IF EXISTS create_payment_form&&
+   CREATE PROCEDURE  create_payment_form(
+       IN nombre VARCHAR(20)
+   )
+   BEGIN 
+   	DECLARE payment_search INT;
+   	
+   	-- numero de nombres  coincidientes
+   	SELECT COUNT(name) INTO payment_search FROM form_of_payment 
+   	WHERE name LIKE nombre;
+   	
+   	IF  payment_search = 0 THEN
+   		INSERT INTO form_of_payment(name)
+   		VALUES(nombre);
+   	ELSE
+   		SELECT 'Ya existe esa forma de pago' AS message;
+   	END IF;
+   END &&
+   DELIMITER ;
+   
+   CALL create_payment_form('En linea');
+   ```
+
+
+
+6. Procedimiento para obtener el nombre y id del jefe a partir del id de cierto empleado.
+
+   ```sql
+   DELIMITER %%
+   DROP PROCEDURE IF EXISTS search_boss%%
+   CREATE PROCEDURE search_boss(
+   IN id INT
+   )
+   BEGIN
+       SELECT CONCAT_WS(' ', e.name, e.last_name, e.last_surname) AS nombre_empleado,
+       CONCAT_WS(' ', b.name, b.last_name, b.last_surname) AS nombre_jefe, b.employee_id AS jefe_id 
+       FROM employee AS e
+       LEFT JOIN employee AS b ON e.boss_id = b.employee_id
+       WHERE e.employee_id = id;
+   END%%
+   DELIMITER ;
+   
+   CALL search_boss(2);
+   ```
+
+
+
+7. Procedimiento para devolver el nombre del representante de cierto cliente a partir de su id
+
+   ```SQL
+   DELIMITER //
+   DROP PROCEDURE IF EXISTS search_rep//
+   CREATE PROCEDURE search_rep(IN id INT)
+   BEGIN
+   	SELECT CONCAT_WS(' ', e.name, e.last_name, e.last_surname) AS nombre_empleado,
+   	cu.customer_name AS nombre_cliente FROM employee AS e
+   	INNER JOIN customer AS cu ON cu.employee_rep = e.employee_id
+   	WHERE cu.id = id;
+   END //
+   DELIMITER ;
+   
+   CALL search_rep(8);
+   ```
+
+   
 
 ### 🔍 Consultas
 
@@ -989,7 +1284,6 @@
     ```SQL
     SELECT DISTINCT c.customer_name FROM customer AS c
     INNER JOIN orders AS o ON o.customer_id = c.id
-    INNER JOIN order_state AS st ON st.id = o.state_id
     WHERE (o.deliver_date > o.expected_date);
     
     /*
@@ -1015,9 +1309,9 @@
     
     */
     ```
-
     
-
+    
+    
 11. Devuelve un listado de las diferentes gamas de producto que ha comprado cada cliente. 
 
     ```SQL
@@ -1892,7 +2186,131 @@
 12. Calcula el número de productos diferentes que hay en cada uno de los pedidos.
 
     ```SQL
-    
+    SELECT ord.id AS id_pedido , COUNT(p.code) AS n_productos FROM product AS p
+    INNER JOIN detail_order AS det ON det.product_code = p.code
+    INNER JOIN orders AS ord ON ord.id = det.order_id
+    GROUP BY ord.id;
+    /*
+    +-----------+-------------+
+    | id_pedido | n_productos |
+    +-----------+-------------+
+    |         1 |           5 |
+    |         2 |           7 |
+    |         3 |           6 |
+    |         4 |           8 |
+    |         8 |           3 |
+    |         9 |           4 |
+    |        10 |           3 |
+    |        11 |           2 |
+    |        12 |           1 |
+    |        13 |           3 |
+    |        14 |           2 |
+    |        15 |           4 |
+    |        16 |           2 |
+    |        17 |           5 |
+    |        18 |           3 |
+    |        19 |           5 |
+    |        20 |           2 |
+    |        21 |           3 |
+    |        22 |           1 |
+    |        23 |           4 |
+    |        24 |           4 |
+    |        25 |           3 |
+    |        26 |           3 |
+    |        27 |           3 |
+    |        28 |           3 |
+    |        29 |           5 |
+    |        30 |           6 |
+    |        31 |           3 |
+    |        32 |           5 |
+    |        33 |           4 |
+    |        34 |           4 |
+    |        35 |           5 |
+    |        36 |           5 |
+    |        37 |           3 |
+    |        38 |           2 |
+    |        39 |           2 |
+    |        40 |           2 |
+    |        41 |           2 |
+    |        42 |           2 |
+    |        43 |           1 |
+    |        44 |           1 |
+    |        45 |           2 |
+    |        46 |           2 |
+    |        47 |           2 |
+    |        48 |           5 |
+    |        49 |           3 |
+    |        50 |           3 |
+    |        51 |           3 |
+    |        52 |           1 |
+    |        53 |           4 |
+    |        54 |           7 |
+    |        55 |           5 |
+    |        56 |           6 |
+    |        57 |           4 |
+    |        58 |           4 |
+    |        59 |           1 |
+    |        60 |           1 |
+    |        61 |           1 |
+    |        62 |           1 |
+    |        63 |           1 |
+    |        64 |           1 |
+    |        65 |           1 |
+    |        66 |           1 |
+    |        67 |           1 |
+    |        68 |           1 |
+    |        74 |           3 |
+    |        75 |           3 |
+    |        76 |           5 |
+    |        77 |           2 |
+    |        78 |           4 |
+    |        79 |           1 |
+    |        80 |           3 |
+    |        81 |           1 |
+    |        82 |           1 |
+    |        83 |           1 |
+    |        89 |           6 |
+    |        90 |           3 |
+    |        91 |           3 |
+    |        92 |           3 |
+    |        93 |           3 |
+    |        94 |           3 |
+    |        95 |           3 |
+    |        96 |           4 |
+    |        97 |           3 |
+    |        98 |           5 |
+    |        99 |           2 |
+    |       100 |           2 |
+    |       101 |           2 |
+    |       102 |           2 |
+    |       103 |           2 |
+    |       104 |           2 |
+    |       105 |           2 |
+    |       106 |           2 |
+    |       107 |           2 |
+    |       108 |           2 |
+    |       109 |           7 |
+    |       110 |           3 |
+    |       111 |           1 |
+    |       112 |           1 |
+    |       113 |           1 |
+    |       114 |           1 |
+    |       115 |           1 |
+    |       116 |           5 |
+    |       117 |           4 |
+    |       118 |           1 |
+    |       119 |           1 |
+    |       120 |           1 |
+    |       121 |           1 |
+    |       122 |           1 |
+    |       123 |           1 |
+    |       124 |           1 |
+    |       125 |           1 |
+    |       126 |           1 |
+    |       127 |           1 |
+    |       128 |           2 |
+    +-----------+-------------+
+    */
     ```
 
     
@@ -1900,7 +2318,132 @@
 13. Calcula la suma de la cantidad total de todos los productos que aparecen en cada uno de los pedidos.
 
     ```SQL
+    SELECT ord.id AS id_pedido , SUM(p.selling_price_dolars) AS total FROM product AS p
+    INNER JOIN detail_order AS det ON det.product_code = p.code
+    INNER JOIN orders AS ord ON ord.id = det.order_id
+    GROUP BY ord.id;
     
+    /*
+    +-----------+--------+
+    | id_pedido | total  |
+    +-----------+--------+
+    |         1 | 114.00 |
+    |         2 | 577.00 |
+    |         3 | 374.00 |
+    |         4 | 143.00 |
+    |         8 | 143.00 |
+    |         9 | 104.00 |
+    |        10 | 214.00 |
+    |        11 | 463.00 |
+    |        12 |   1.00 |
+    |        13 | 128.00 |
+    |        14 |  68.00 |
+    |        15 |  39.00 |
+    |        16 |  21.00 |
+    |        17 |  75.00 |
+    |        18 |  22.00 |
+    |        19 |  69.00 |
+    |        20 |  26.00 |
+    |        21 |  26.00 |
+    |        22 |   6.00 |
+    |        23 |  98.00 |
+    |        24 |  46.00 |
+    |        25 | 131.00 |
+    |        26 |  75.00 |
+    |        27 |  18.00 |
+    |        28 | 828.00 |
+    |        29 | 251.00 |
+    |        30 | 140.00 |
+    |        31 |  48.00 |
+    |        32 | 158.00 |
+    |        33 | 482.00 |
+    |        34 |  72.00 |
+    |        35 |  52.00 |
+    |        36 |  50.00 |
+    |        37 |  89.00 |
+    |        38 |  28.00 |
+    |        39 |  24.00 |
+    |        40 |   2.00 |
+    |        41 |   2.00 |
+    |        42 |   2.00 |
+    |        43 |   1.00 |
+    |        44 |   1.00 |
+    |        45 |   2.00 |
+    |        46 |  14.00 |
+    |        47 |  24.00 |
+    |        48 | 175.00 |
+    |        49 |  25.00 |
+    |        50 | 112.00 |
+    |        51 | 108.00 |
+    |        52 |  70.00 |
+    |        53 |  94.00 |
+    |        54 |  73.00 |
+    |        55 | 863.00 |
+    |        56 | 158.00 |
+    |        57 | 185.00 |
+    |        58 |  43.00 |
+    |        59 |  70.00 |
+    |        60 |  70.00 |
+    |        61 |  70.00 |
+    |        62 |  70.00 |
+    |        63 |  70.00 |
+    |        64 |  70.00 |
+    |        65 |  70.00 |
+    |        66 |  70.00 |
+    |        67 |  70.00 |
+    |        68 |  70.00 |
+    |        74 | 596.00 |
+    |        75 |  33.00 |
+    |        76 |  87.00 |
+    |        77 |  24.00 |
+    |        78 |  92.00 |
+    |        79 |   6.00 |
+    |        80 | 127.00 |
+    |        81 |   4.00 |
+    |        82 |  64.00 |
+    |        83 |   4.00 |
+    |        89 | 128.00 |
+    |        90 |   3.00 |
+    |        91 |  42.00 |
+    |        92 | 153.00 |
+    |        93 |  52.00 |
+    |        94 | 143.00 |
+    |        95 | 109.00 |
+    |        96 | 107.00 |
+    |        97 |  27.00 |
+    |        98 | 124.00 |
+    |        99 |  74.00 |
+    |       100 |  54.00 |
+    |       101 |   2.00 |
+    |       102 |  24.00 |
+    |       103 |  12.00 |
+    |       104 |  80.00 |
+    |       105 |  70.00 |
+    |       106 |  19.00 |
+    |       107 | 112.00 |
+    |       108 |  12.00 |
+    |       109 |  59.00 |
+    |       110 |  53.00 |
+    |       111 |  70.00 |
+    |       112 |  70.00 |
+    |       113 |  70.00 |
+    |       114 |  70.00 |
+    |       115 |  70.00 |
+    |       116 |  28.00 |
+    |       117 |  57.00 |
+    |       118 |  70.00 |
+    |       119 |  70.00 |
+    |       120 |  70.00 |
+    |       121 |  70.00 |
+    |       122 |  70.00 |
+    |       123 |  70.00 |
+    |       124 |  70.00 |
+    |       125 |  70.00 |
+    |       126 |  70.00 |
+    |       127 |  70.00 |
+    |       128 |   3.00 |
+    +-----------+--------+
+    */
     ```
 
     
@@ -1908,7 +2451,38 @@
 14. Devuelve un listado de los 20 productos más vendidos y el número total de unidades que se han vendido de cada uno. El listado deberá estar ordenado por el número total de unidades vendidas.
 
     ```SQL
-    SE
+    SELECT p.code, p.product_name AS nombre_producto, SUM(det.quantity) AS cantidad FROM product AS p -- se suma la cantidad de producto en cada venta * 
+    INNER JOIN detail_order AS det ON det.product_code = p.code
+    GROUP BY nombre_producto
+    ORDER BY cantidad DESC
+    LIMIT 20;
+    
+    /*
+    +-----------------------------------------------+----------+
+    | nombre_producto                               | cantidad |
+    +-----------------------------------------------+----------+
+    | Thymus Vulgaris                               |      961 |
+    | Thymus Citriodra (Tomillo limón)              |      455 |
+    | Rosal bajo 1Âª -En maceta-inicio brotación    |      423 |
+    | Chamaerops Humilis                            |      335 |
+    | Cerezo                                        |      316 |
+    | Petrosilium Hortense (Peregil)                |      291 |
+    | Trachycarpus Fortunei                         |      279 |
+    | Acer Pseudoplatanus                           |      262 |
+    | Tuja orientalis "Aurea nana"                  |      221 |
+    | Azadón                                        |      220 |
+    | Brahea Armata                                 |      212 |
+    | Kaki Rojo Brillante                           |      203 |
+    | Peral                                         |      151 |
+    | Beucarnea Recurvata                           |      150 |
+    | Robinia Pseudoacacia Casque Rouge             |      150 |
+    | Ajedrea                                       |      135 |
+    | Limonero 30/40                                |      131 |
+    | Nectarina                                     |      130 |
+    | Lavándula Dentata                             |      128 |
+    | Nerium oleander ARBOL Calibre 8/10            |      127 |
+    +-----------------------------------------------+----------+
+    */
     ```
 
     
