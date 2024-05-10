@@ -1,3 +1,0 @@
-SELECT SUM(det.unitary_price * det.quantity) AS 'Base Imponible', 
-       SUM((det.unitary_price * det.quantity) * 0.21) AS 'IVA', 
-       SUM(det.unitary_price * det.quantity + ((det.unitary_price * det.quantity) * 0.21)) AS 'Total'

@@ -1,87 +1,131 @@
-
-
 # Proyecto de bases de datos (#1)
 
 
 
 ## :white_flower: Base de datos de jardineria :white_flower:
 
-### 
+La base de datos "The Garden" es un sistema integral diseñado para  administrar los aspectos operativos y comerciales de una empresa  dedicada al sector de la jardinería. Ofreciendo coherencia en los datos para gestionar  eficientemente una variedad de entidades y procesos clave dentro del  negocio.
 
-[TOC]
+Esta es una base de datos relacional hecha en SQL y  gestionada por el sistema de MySQL , la cual consta de una version  normalizada de una base de datos de una jardineria, y con algunos ajustes en la insercion de datos.
+
+Este repositorio se presenta como la primera parte del proyecto de base de datos.
+
+- **Base de datos original: ** [jardineria](https://gist.github.com/josejuansanchez/c408725e848afd64dd9a20ab37fba8c9)
+
+
 
 
 
 ### 👤Autoría
 
+*****
+
 - **Nombre:** Sofia Marcela Medina Díaz.
+
 - **Grupo:** J1
 
 
-
-****
 
 
 
 ### 🗃️ Diagrama entidad - relación
 
+*****
+
 ![Imagen del diagrama](the_garden_diagram.png)
 
 
 
-****
 
-
-
-###  :heavy_plus_sign: Inserción de datos + implementacion
-
-- Para la insercion de los datos se utilizaron [procedimientos almacenados](procedimientos_de_insercion.sql) apoyados por [funciones](utileria:D/functions.sql)
-  - Primero se deben crear las funciones, despues los procedimientos y las llamadas de oficina, empleado, cliente, producto, pedido, detalle de pedido y pago
-
-- La llamada a los  respectivos procedimientos se encuentra en la carpeta de `insertions`
-
-
-
-***
 
 
 
 ### 🔨 Creación de tablas
 
-- El script de la creacion de la bases de datos se encuentra en [en un archivo por separado](creacionDB.sql).
+****
+
+El script contenido en el archivo "garden_tables" incluye las   tablas normalizadas de la base de datos, junto con las restricciones de  clave primaria y clave externa (foránea).
+
+- El script de la creacion de la bases de datos se encuentra en [en un archivo por separado](creation/garden_tables.sql).
 
 
 
-***
+
+
+
+
+###  :heavy_plus_sign: Inserción de datos + implementacion
+
+****
+
+- Para la insercion de la mayoria de datos se utilizaron [procedimientos almacenados](creation/procedimientos_de_insercion.sql) apoyados por [funciones](creation/functions.sql), las cuales deben crearse primero.
+
+- Antes de hacer los llamados a los procedimientos de insercion de datos, se debe hacer inserts iniciales:
+
+  ```sql
+  -- tipo de complmenento
+  INSERT INTO complement_type(id, type_name) VALUES(1, 'Calle');
+  
+  -- complemento
+  INSERT INTO complement(complement_type_id, complement_description) VALUES (1, '25');
+  
+  -- tipo de telefono
+  INSERT INTO telephone_type VALUES(1, 'Fijo');
+  INSERT INTO telephone_type VALUES(2, 'Celular'); 
+  INSERT INTO telephone_type VALUES(3, 'Fax'); 
+  
+  -- estado de orden 
+  INSERT INTO order_state(id, state_name) VALUES (1, 'Entregado');
+  INSERT INTO order_state(id, state_name) VALUES (2, 'Pendiente');
+  INSERT INTO order_state(id, state_name) VALUES (3, 'Rechazado');
+  
+  
+  -- forma de pago
+  INSERT INTO form_of_payment(id, name) VALUES (1, 'PayPal');
+  INSERT INTO form_of_payment(id, name) VALUES (2, 'Transferencia');
+  INSERT INTO form_of_payment(id, name) VALUES (3, 'Cheque');
+  ```
+
+
+
+- Luego se ejecutan los siguientes inserts y llamadas a procedimientos que estan en la carpeta de `inserts` (con el fin de respetar las llaves foraneas):
+  - `insert_office.sql -> insert_employees.sql -> insert_clients.sql -> insert_products.sql -> insert_orders.sql -> insert_detail_order.sql -> insert_payments.sql  `
+
+
 
 
 
 ### :eyes: Vistas
 
+****
+
 1. listado indicando todas las ciudades donde hay oficinas y el número de empleados que tiene.
 
    ```sql
    CREATE VIEW ciudades_empleado AS 
-   SELECT ci.city_name AS nombre_ciudad, 
-   COUNT(em.employee_id) AS n_empleados FROM office AS o
+   SELECT ci.city_name AS 'Nombre de la ciudad', 
+   COUNT(em.employee_id) AS 'Numero de empleados' 
+   FROM office AS o
    INNER JOIN employee AS em ON em.office_code = o.code
    INNER JOIN entity AS e ON o.entity_id = e.id
    INNER JOIN address AS ad ON ad.entity_id = e.id
    INNER JOIN city AS ci ON ci.id = ad.city_id
-   GROUP BY nombre_ciudad;
+   GROUP BY ci.city_name;
    
    SELECT nombre_ciudad,n_empleados FROM  ciudades_empleado;
    ```
 
    
 
-2. la suma total de todos los pagos que se realizaron para cada uno de los años que aparecen en la tabla pagos.
+2. la suma total de todos los pagos que se realizaron para cierto año
 
    ```SQL
    CREATE OR REPLACE VIEW pagos_año AS 
-   SELECT YEAR(payment_date) AS anio_pago, 
+   SELECT YEAR(payment_date) AS 'Año de pago', 
    SUM(pa.total) AS suma_pago FROM payment AS pa
-   GROUP BY anio_pago;
+   GROUP BY YEAR(payment_date);
+   
+   
    ```
 
 
@@ -90,11 +134,11 @@
 
    ```sql
    CREATE OR REPLACE VIEW empleado_clientes AS 
-   SELECT COUNT(cu.id) AS numero_clientes,
-   CONCAT_WS(' ', em.name, em.last_name)  AS nombre_representante
+   SELECT COUNT(cu.id) AS 'Numero de clientes',
+   CONCAT_WS(' ', em.name, em.last_name)  AS 'Nombre de representante'
    FROM employee AS em
    INNER JOIN customer AS cu ON em.employee_id = cu.employee_rep
-   GROUP BY nombre_representante;
+   GROUP BY COUNT(cu.id);
    ```
 
 
@@ -103,7 +147,8 @@
 
    ```sql
    CREATE OR REPLACE VIEW numero_clientes AS 
-   SELECT COUNT(id) FROM customer;
+   SELECT COUNT(id) AS 'Numero de clientes' 
+   FROM customer;
    ```
 
 
@@ -112,7 +157,9 @@
 
    ```sql
    CREATE OR REPLACE VIEW pedidos_estado AS 
-   SELECT COUNT(ord.id), os.state_name FROM orders AS ord
+   SELECT COUNT(ord.id) AS 'Numero de pedidos', 
+   os.state_name AS 'Nombre del estado' 
+   FROM orders AS ord
    INNER JOIN order_state AS os ON os.id = ord.state_id
    GROUP BY os.state_name;
    ```
@@ -123,7 +170,8 @@
 
    ```sql
    CREATE OR REPLACE VIEW productos_sin_pedidos AS 
-   SELECT DISTINCT  p.product_name FROM product AS p
+   SELECT DISTINCT  p.product_name AS 'Nombre del producto'
+   FROM product AS p
    LEFT JOIN detail_order AS od ON od.product_code = p.code
    WHERE od.product_code IS NULL;
    ```
@@ -134,7 +182,8 @@
 
    ```sql
    CREATE OR REPLACE VIEW empleados_sin_cliente AS 
-   SELECT  em.name, em.last_name  FROM employee AS em
+   SELECT  CONCAT_WS(' ', em.name, em.last_name)  AS 'Nombre de empleado'  
+   FROM employee AS em
    LEFT JOIN customer AS cu ON em.employee_id = cu.employee_rep
    WHERE cu.employee_rep IS NULL;
    ```
@@ -145,7 +194,8 @@
 
    ```sql
    CREATE OR REPLACE VIEW clientes_sin_pedido AS 
-   SELECT cu.customer_name FROM customer AS cu
+   SELECT cu.customer_name AS 'Nombre del cliente'
+   FROM customer AS cu
    LEFT JOIN orders AS o ON o.customer_id = cu.id
    WHERE o.customer_id IS NULL;
    ```
@@ -156,7 +206,8 @@
 
    ```sql
    CREATE OR REPLACE VIEW clientes_sin_pago AS 
-   SELECT cu.customer_name FROM customer AS cu
+   SELECT cu.customer_name AS 'Nombre del cliente'
+   FROM customer AS cu
    LEFT JOIN payment AS pa ON pa.customer_id = cu.id
    WHERE pa.customer_id IS NULL;
    ```
@@ -167,18 +218,20 @@
 
     ```sql
     CREATE OR REPLACE VIEW empleados_jefes AS 
-    SELECT CONCAT_WS(' ', e.name, e.last_name, e.last_surname) AS nombre_empleado,
-    CONCAT_WS(' ', b.name, b.last_name, b.last_surname) AS nombre_jefe FROM employee AS e
+    SELECT CONCAT_WS(' ', e.name, e.last_name, e.last_surname) AS 'Nombre del empleado',
+    CONCAT_WS(' ', b.name, b.last_name, b.last_surname) AS 'Nombre del jefe' FROM employee AS e
     LEFT JOIN employee AS b ON e.boss_id = b.employee_id;
     ```
 
     
 
-***
+
 
 
 
 ### :wrench: Procedimientos almacenados
+
+****
 
 1. crear una nueva gama de productos
 
@@ -427,13 +480,13 @@
 
 
 
-***
+
 
 
 
 ### 🔍 Consultas
 
-
+******
 
 #### Consultas sobre una tabla
 

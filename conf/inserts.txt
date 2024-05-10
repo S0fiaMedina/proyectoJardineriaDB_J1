@@ -1,4 +1,0 @@
-    IN family_name VARCHAR(25),
-    IN desc_text TEXT,
-    IN desc_html TEXT,
-    IN image VARCHAR(256)

@@ -2,27 +2,34 @@ DROP DATABASE IF EXISTS the_garden;
 CREATE DATABASE the_garden;
 USE the_garden;
 
-/* ******************* TABLAS DERIVADAS DE DIRECCION ******************* */
 
--- ENTIDAD
--- para agregar telefonos y direcciones a cliente, empleado y  oficina
+/*
+****************************
+ENTIDAD
+***************************
+*/
 CREATE TABLE entity(
 	id INT NOT NULL AUTO_INCREMENT,
 	CONSTRAINT pk_entity PRIMARY KEY (id)
 )ENGINE = INNODB;
 
 
--- PAISES
-
+/*
+****************************
+PAIS
+***************************
+*/
 CREATE TABLE country(
 	id INT NOT NULL AUTO_INCREMENT,
     country_name VARCHAR(50) NOT NULL UNIQUE,
     CONSTRAINT pk_country PRIMARY KEY(id)
 )ENGINE = INNODB;
 
-
--- REGIONES
-
+/*
+****************************
+REGION
+***************************
+*/
 CREATE TABLE region(
 	id INT NOT NULL	 AUTO_INCREMENT,
     region_name VARCHAR(50) NOT NULL,
@@ -31,8 +38,11 @@ CREATE TABLE region(
     CONSTRAINT fk_region_country FOREIGN KEY(country_id) REFERENCES country(id)
 )ENGINE = INNODB;
 
--- CIUDAD
-
+/*
+****************************
+CIUDAD
+***************************
+*/
 CREATE TABLE city(
 	id INT NOT NULL AUTO_INCREMENT,
     city_name VARCHAR(50) NOT NULL,
@@ -42,15 +52,24 @@ CREATE TABLE city(
 )ENGINE = INNODB;
 
 
---  TIPO DE COMPLEMENTO
-
+/*
+****************************
+TIPO DE COMPLMENTO
+***************************
+*/
 CREATE TABLE complement_type(
 	id INT NOT NULL AUTO_INCREMENT,
     type_name VARCHAR(50) NOT NULL UNIQUE,
     CONSTRAINT pk_complement_type PRIMARY KEY(id)
 )ENGINE = INNODB;
 
--- COMPLEMENTO
+
+
+/*
+****************************
+COMPLEMENTO
+***************************
+*/
 
 CREATE TABLE complement(
 	id INT NOT NULL AUTO_INCREMENT,
@@ -60,8 +79,12 @@ CREATE TABLE complement(
     CONSTRAINT FOREIGN KEY(complement_type_id) REFERENCES complement_type(id)
 )ENGINE = INNODB;
 
--- DIRECCION
 
+/*
+****************************
+DIRECCION
+***************************
+*/
 CREATE TABLE address( 
 	id INT NOT NULL AUTO_INCREMENT,
     entity_id INT NOT NULL,
@@ -72,8 +95,13 @@ CREATE TABLE address(
     CONSTRAINT fk_address_entity FOREIGN KEY(entity_id) REFERENCES entity(id)
 )ENGINE = INNODB;
 
--- DIRECCION COMPLEMENTO
 
+
+/*
+****************************
+DIRECCION_COMPLEMENTO
+***************************
+*/
 CREATE TABLE address_complement(
     complement_id INT NOT NULL,
     address_id INT NOT NULL,
@@ -82,11 +110,11 @@ CREATE TABLE address_complement(
     CONSTRAINT fk_address_complement_address FOREIGN KEY(address_id) REFERENCES address(id)
 )ENGINE = INNODB;
 
-/* ******************* TABLAS DERIVADAS DE TELEFONO ******************* */
-
-
--- TIPO DE TELEFONO
-
+/*
+****************************
+TIPO DE TELEFONO
+***************************
+*/
 CREATE TABLE telephone_type(
 	id INT NOT NULL AUTO_INCREMENT,
     type_name VARCHAR(15) NOT NULL,
@@ -94,8 +122,11 @@ CREATE TABLE telephone_type(
 )ENGINE = INNODB;
 
 
--- TELEFONO
-
+/*
+****************************
+TELEFONO
+***************************
+*/
 CREATE TABLE telephone(
 	id INT NOT NULL AUTO_INCREMENT,
     entity_id INT NOT NULL,
@@ -106,10 +137,12 @@ CREATE TABLE telephone(
     CONSTRAINT fk_telephone_type FOREIGN KEY(type_id) REFERENCES telephone_type(id)
 )ENGINE = INNODB;
 
-/* ******************* TABLAS DERIVADAS DE PRODUCTO ******************* */
 
--- GAMA DEL PRODUCTO
-
+/*
+****************************
+GAMA
+***************************
+*/
 CREATE TABLE family(
     id INT NOT NULL AUTO_INCREMENT,
     family_name VARCHAR(25) NOT NULL,
@@ -119,7 +152,11 @@ CREATE TABLE family(
     CONSTRAINT pk_family PRIMARY KEY(id)
 )ENGINE = INNODB;
 
--- PROOVEDOR 
+/*
+****************************
+PROOVEDOR
+***************************
+*/
 DROP TABLE IF EXISTS supplier;
 CREATE TABLE supplier(
     id INT NOT NULL AUTO_INCREMENT,
@@ -127,7 +164,11 @@ CREATE TABLE supplier(
     CONSTRAINT pk_supplier PRIMARY KEY(id)
 )ENGINE = INNODB;
 
--- PRODUCTO
+/*
+****************************
+PRODUCTO
+***************************
+*/
 DROP TABLE IF EXISTS product;
 CREATE TABLE product(
     code VARCHAR(15) NOT NULL ,
@@ -147,11 +188,12 @@ CREATE TABLE product(
 )ENGINE = INNODB;
 
 
+
 /*
-**************** TABLAS DERIVADAS DE EMPLEADO ****************
+****************************
+OFICINA
+***************************
 */
-
-
 CREATE TABLE office(
 	code VARCHAR(10) NOT NULL,
     entity_id INT NOT NULL,
@@ -160,14 +202,22 @@ CREATE TABLE office(
 )ENGINE = INNODB;
 
 
--- CARGO
-
+/*
+****************************
+CARGO 
+***************************
+*/
 CREATE TABLE charge(
 	id INT NOT NULL  AUTO_INCREMENT,
 	charge_name VARCHAR(50) NOT NULL,
 	CONSTRAINT pk_charge PRIMARY KEY(id)
 )ENGINE = INNODB;
 
+/*
+****************************
+EXTENSION
+***************************
+*/
 -- EXTENSION EMPLEADO
 
 CREATE TABLE extension(
@@ -176,16 +226,11 @@ CREATE TABLE extension(
 	CONSTRAINT pk_customer_contact PRIMARY KEY(id)
 );
 
--- EXTENSION EMPLEADO
-
-CREATE TABLE extension(
-	id INT NOT NULL AUTO_INCREMENT,
-	extension_number VARCHAR(4) NOT NULL,
-	CONSTRAINT pk_customer_contact PRIMARY KEY(id)
-);
-
--- EMPLEADO
-
+/*
+****************************
+EMPLEADO
+***************************
+*/
 CREATE TABLE employee(
     employee_id INT NOT NULL AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,
@@ -207,7 +252,9 @@ CREATE TABLE employee(
 
 
 /*
-**************** TABLAS DERIVADAS DE CLIENTE ****************
+****************************
+CLIENTE
+***************************
 */
 
 CREATE TABLE customer(
@@ -222,8 +269,11 @@ CREATE TABLE customer(
 )ENGINE = INNODB;
 
 
--- CONTACTO DE CLIENTE 
-
+/*
+****************************
+CONTACTO DE CLIENTE
+***************************
+*/
 CREATE TABLE customer_contact(
 	id INT not null AUTO_INCREMENT,
 	customer_id INT NOT NULL,
@@ -235,13 +285,12 @@ CREATE TABLE customer_contact(
 	CONSTRAINT fk_contact_customer FOREIGN KEY(customer_id) REFERENCES customer(id)
 )ENGINE = INNODB;
 
+
 /*
-**************** TABLAS DERIVADAS DE ORDENES ****************
+****************************
+ESTADO DEL PEDIDO
+***************************
 */
-
-
--- ESTADO DE UN PEDIDO
-/* tabla hecha para normalizar los estados de un pedido, todos sus atibutos son depenedientes a la llave primaria y son atomicos*/
 CREATE TABLE order_state(
 	id INT NOT NULL AUTO_INCREMENT,
 	state_name VARCHAR(15) NOT NULL,
@@ -249,8 +298,11 @@ CREATE TABLE order_state(
 )ENGINE = INNODB;
 
 
--- PEDIDO
-
+/*
+****************************
+PEDIDO
+***************************
+*/
 CREATE TABLE orders(
 	id  INT NOT NULL AUTO_INCREMENT,
 	customer_id INT NOT NULL,
@@ -266,8 +318,11 @@ CREATE TABLE orders(
 
 
 
--- DETALLE DE PEDIDO
-
+/*
+****************************
+DETALLE DE PEDIDO
+***************************
+*/
 CREATE TABLE detail_order(
 	product_code VARCHAR(15) NOT NULL,
 	order_id INT NOT NULL,
@@ -282,7 +337,9 @@ CREATE TABLE detail_order(
 
 
 /*
-******************** TABLAS DERIVADAS DE PAGO ********************
+****************************
+FORMA DE PAGO
+***************************
 */
 CREATE TABLE form_of_payment(
 	id INT NOT NULL AUTO_INCREMENT,
@@ -290,8 +347,11 @@ CREATE TABLE form_of_payment(
 	CONSTRAINT pk_form_of_payment PRIMARY KEY(id) 
 )ENGINE = INNODB;
 
-
--- PAGO
+/*
+****************************
+PAGO
+***************************
+*/
 CREATE TABLE payment(
 	id INT NOT NULL AUTO_INCREMENT,
 	customer_id INT NOT NULL,

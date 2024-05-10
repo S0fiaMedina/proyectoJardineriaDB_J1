@@ -1,33 +1,4 @@
 /*
-INSERTS INICIALES
-*/
-
--- tipo de complmenento
-INSERT INTO complement_type(id, type_name) VALUES(1, 'Calle');
-
--- complemento
-INSERT INTO complement(complement_type_id, complement_description) VALUES (1, '25');
-
--- tipo de telefono
-INSERT INTO telephone_type VALUES(1, 'Fijo');
-INSERT INTO telephone_type VALUES(2, 'Celular'); 
-INSERT INTO telephone_type VALUES(3, 'Fax'); 
-
--- estado de orden 
-INSERT INTO order_state(id, state_name) VALUES (1, 'Entregado');
-INSERT INTO order_state(id, state_name) VALUES (2, 'Pendiente');
-INSERT INTO order_state(id, state_name) VALUES (3, 'Rechazado');
-
-
--- forma de pago
-INSERT INTO form_of_payment(id, name) VALUES (1, 'PayPal');
-INSERT INTO form_of_payment(id, name) VALUES (2, 'Transferencia');
-INSERT INTO form_of_payment(id, name) VALUES (3, 'Cheque');
-
-
-
-
-/*
 Funcion para insertar los datos de producto, familia y proovedor
 */
 
